@@ -2,13 +2,12 @@ clear all; close all; clc;
 
 % setup path
 addpath(genpath(pwd));
-user = 'puti';
-projectName = 'Localizer';
+projectName = 'Loc2023';
 bidsDir = '~/Desktop/MRI/Loc2023';
 githubDir = '~/Documents/GitHub';
-codeDir = pwd;
+fsDir = '/Applications/freesurfer/7.2.0';
 addpath(genpath(fullfile(githubDir, 'wpToolbox')));
-setup_user(user,projectName,bidsDir,githubDir);
+setup_user(projectName,bidsDir,githubDir,fsDir);
 
 % define params
 sub = 'sub-0201';
