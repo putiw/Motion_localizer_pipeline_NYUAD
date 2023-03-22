@@ -1,0 +1,189 @@
+clear all; close all; clc;
+
+% setup path
+addpath(genpath(pwd));
+user = 'puti';
+projectName = 'Localizer';
+bidsDir = '~/Desktop/MRI/Loc2023';
+githubDir = '~/Documents/GitHub';
+codeDir = pwd;
+addpath(genpath(fullfile(githubDir, 'wpToolbox')));
+setup_user(user,projectName,bidsDir,githubDir);
+
+% define params
+subj = 'sub-0248';
+ses = 'ses-01';
+space = 'fsnative';
+run = 1:8;
+cond = {'mt','mstL','mstR','fst'};
+
+% load data
+datafiles = load_data(bidsDir,'loc',space,'.mgh',subj,ses,run) ;
+ 
+% make design matrix
+tmp{1} = repmat(repelem([1 0;0 1],10,1),15,1);
+matrices = repmat(tmp(1), 1, 8);
+
+% run glm
+for iRoi = 1:numel(cond)
+    results.(char(cond{iRoi})) = GLMestimatemodel(matrices([iRoi iRoi+4]),datafiles([iRoi iRoi+4]),1,1,'assume',[],0);
+end
+%%
+close all;
+visualize_R2(results,subj.cond);
+%%
+% Create a single figure and axes
+fig = figure('Position', [100, 100, 1200, 600]);
+ax = axes;
+image_array = gobjects(length(results), 1);
+bins = [0 100];
+cmap0 = cmaplookup(0:1:100,min(bins),max(bins),[],hot);
+for iRoi = 1:length(results)
+    hold(ax, 'on');
+    tmp = results{iRoi};
+    %datatoplot = tmp.R2;
+    datatoplot = ((tmp.R2 - min(tmp.R2)) / (max(tmp.R2) - min(tmp.R2))) * 100;
+
+    datatoplot(isnan(datatoplot)) = 0;
+    [rawimg,Lookup,rgbimg] = cvnlookup(subj,1,datatoplot,[min(bins) max(bins)],cmap0,0,[],0,{'roiname',{'Glasser2016'},'roicolor',{'w'},'drawroinames',1,'roiwidth',{1},'fontsize',20});
+    
+    color = [0.5];
+    [r,c,t] = size(rgbimg);
+    [i j] = find(all(rgbimg == repmat(color,r,c,3),3));
+    
+    for ii = 1: length(i)
+        rgbimg(i(ii),j(ii),:) = ones(1,3);
+    end
+    image_handles(iRoi) = imagesc(ax, rgbimg);
+end
+hold(ax, 'off');
+set(image_handles(2:end), 'Visible', 'off');
+
+% Assign the callback function to the figure's KeyPressFcn
+set(fig, 'KeyPressFcn', {@key_press_callback_images, image_handles});
+
+% Add a non-interactive UI control to keep focus within the figure
+uicontrol('Style', 'text', 'Visible', 'off', 'Enable', 'inactive', 'Position', [0 0 1 1]);
+axis image tight;
+axis off
+hold on
+plot(0,0);
+colormap(cmap0);
+hcb=colorbar('SouthOutside');
+hcb.Ticks = [min(bins) range(bins)/2+min(bins) max(bins)];
+hcb.TickLabels = num2str(hcb.Ticks(:));
+hcb.FontSize = 25
+hcb.Label.String = 'R2%'
+hcb.TickLength = 0.001;
+title(subj)
+set(ax, 'YDir', 'reverse');
+%%
+close all
+bins = 0:1:100;
+cmap0 = cmaplookup(bins,min(bins),max(bins),[],hot);
+
+
+%%
+
+[rawimg,Lookup,rgbimg] = cvnlookup(subj,1,datatoplot,[min(bins) max(bins)],cmap0,0,[],0,{'roiname',{'MT_exvivo'},'roicolor',{'w'},'drawroinames',0,'roiwidth',{5},'fontsize',20});
+
+color = [0.5];
+[r,c,t] = size(rgbimg);
+[i j] = find(all(rgbimg == repmat(color,r,c,3),3));
+
+for ii = 1: length(i)
+    rgbimg(i(ii),j(ii),:) = ones(1,3);
+end
+
+a = imagesc(rgbimg); axis image tight;
+axis off
+hold on
+% subplot(2,1,2)
+plot(0,0);
+colormap(cmap0);
+hcb=colorbar('SouthOutside');
+hcb.Ticks = [0:0.25:1];
+% hcb.TickLabels = {'}
+hcb.FontSize = 25
+hcb.Label.String = 'R2%'
+hcb.TickLength = 0.001;
+
+title(subj)
+
+%%
+figure(2); clf
+betas = mt.modelmd{2};
+
+motion = nanmean(betas(:,[1]),2);
+stationary = nanmean(betas(:,[2]),2);
+
+C = [1 -1]'
+contrast = C' * [motion stationary]';
+
+mymask = double(mt.R2>20);
+
+
+datatoplot = contrast' .* double(mymask);
+
+datatoplot(datatoplot==0) = -50;
+datatoplot(isnan(datatoplot)) = -50;
+
+
+
+bins = -0.5:0.01:0.5
+cmap0 = cmaplookup(bins,min(bins),max(bins),[],(cmapsign4));
+[rawimg,Lookup,rgbimg] = cvnlookup(subj,1,datatoplot,[min(bins) max(bins)],cmap0,min(bins),[],0,{'roiname',{'Glasser2016'},'roicolor',{'w'},'drawroinames',1,'roiwidth',{1},'fontsize',20});
+
+color = [0.5];
+[r,c,t] = size(rgbimg);
+[i j] = find(all(rgbimg == repmat(color,r,c,3),3));
+
+for ii = 1: length(i)
+    rgbimg(i(ii),j(ii),:) = ones(1,3);
+end
+
+a = imagesc(rgbimg); axis image tight;
+
+    
+set(gcf,'Position',[ 277         119        1141         898])
+axis off
+hold on
+% subplot(2,1,2)
+plot(0,0);
+colormap(cmap0);
+hcb=colorbar('SouthOutside');
+hcb.Ticks = [0 1];
+hcb.TickLabels = {'-0.5';'0.5'}
+hcb.FontSize = 25
+hcb.Label.String = 'Moving dots vs. stationary'
+hcb.TickLength = 0.001;
+
+
+
+
+
+%%
+figure(3);clf
+mymask = double(myresults.R2>70);
+sum(mymask)
+
+tcs = nanmean(cat(3,datafiles{:}),3);
+ObsResp = nanmean(tcs(logical(mymask),:),1);
+dc = nanmean(ObsResp)
+ObsResp = 100 * (ObsResp - dc) / dc;
+
+plot(ObsResp)
+% tcs
+hold on
+
+stem(dms{1}(:,1))
+
+legend({'Average timecourse from 100 most responsible voxels in MT';'Centrally moving dots predictior'})
+legend box off
+ylabel('%BOLD')
+xlabel('TRs')
+set(gca,'Fontsize',25)
+
+
+
+
