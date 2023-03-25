@@ -11,9 +11,10 @@ for iRoi = 1:length(rois)
     tmp = results.(char(rois{iRoi}));
     %datatoplot = tmp.R2;
     datatoplot = ((tmp.R2 - min(tmp.R2)) / (max(tmp.R2) - min(tmp.R2))) * 100;
+    %datatoplot = results.(char(rois{iRoi})).modelmd{1, 2}(:,1) - results.(char(rois{iRoi})).modelmd{1, 2}(:,2);
     datatoplot(isnan(datatoplot)) = 0;
     
-    [rawimg,Lookup,rgbimg] = cvnlookup(sub,1,datatoplot,[min(bins) max(bins)],cmap0,0,[],0,{'roiname',{'Glasser2016'},'roicolor',{'w'},'drawroinames',1,'roiwidth',{1},'fontsize',20});
+    [rawimg,Lookup,rgbimg] = cvnlookup(sub,1,datatoplot,[min(bins) max(bins)],jet,0,[],0,{'roiname',{'Glasser2016'},'roicolor',{'w'},'drawroinames',1,'roiwidth',{1},'fontsize',20});
     
     color = [0.5];
     [r,c,t] = size(rgbimg);
@@ -23,6 +24,7 @@ for iRoi = 1:length(rois)
         rgbimg(i(ii),j(ii),:) = ones(1,3);
     end
     image_handles(iRoi) = imagesc(ax, rgbimg);
+    set(gca, 'YDir', 'reverse');
 end
 hold(ax, 'off');
 set(image_handles(2:end), 'Visible', 'off');
@@ -44,6 +46,6 @@ hcb.FontSize = 25
 hcb.Label.String = 'R2%'
 hcb.TickLength = 0.001;
 title(sub)
-set(ax, 'YDir', 'reverse');
+
 
 end
